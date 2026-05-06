@@ -22,6 +22,7 @@ efektywny_kurs_sprzedazy = bazowy_kurs_sprzedazy * 0.99
 
 # Obliczenia kosztów
 koszt_calkowity_pln = (ilosc * cena_zakupu_waluta * kurs_zakupu) + prowizja_zakupu
+laczna_prowizja = prowizja_zakupu + prowizja_sprzedazy
 
 st.subheader(f"Analiza dla: {nazwa}")
 c1, c2, c3 = st.columns(3)
@@ -29,21 +30,24 @@ c1.metric("Koszt zakupu", f"{koszt_calkowity_pln:,.2f} PLN")
 c2.metric("Kurs rynkowy", f"{bazowy_kurs_sprzedazy:.4f}")
 c3.metric("Kurs po marży (-1%)", f"{efektywny_kurs_sprzedazy:.4f}")
 
-# Generowanie danych do tabeli
+# Generowanie danych do tabeli (zakres 3% - 15%)
 wyniki = []
-for procent in range(1, 11):
+for procent in range(3, 16):
     wzrost = 1 + (procent / 100)
     przyszla_cena_waluta = cena_zakupu_waluta * wzrost
     
+    # Wartość sprzedaży w PLN po kursie z marżą banku
     wartosc_sprzedazy_pln = (ilosc * przyszla_cena_waluta * efektywny_kurs_sprzedazy) - prowizja_sprzedazy
     zysk_netto = wartosc_sprzedazy_pln - koszt_calkowity_pln
     marza_proc = (zysk_netto / koszt_calkowity_pln) * 100
     
+    # Kolejność zgodna z prośbą
     wyniki.append({
-        "Wzrost ceny akcji": f"+{procent}%",
-        "Cena akcji (waluta)": round(przyszla_cena_waluta, 2),
+        "Cena akcji": round(przyszla_cena_waluta, 2),
+        "Wzrost ceny": f"+{procent}%",
         "Wartość w PLN": round(wartosc_sprzedazy_pln, 2),
-        "Zysk netto (PLN)": round(zysk_netto, 2),
+        "Prowizja (suma)": round(laczna_prowizja, 2),
+        "Zysk netto": round(zysk_netto, 2),
         "Realna marża": round(marza_proc, 2)
     })
 
@@ -58,12 +62,15 @@ def style_rows(row):
         color = 'background-color: #f1c40f; color: black'  # Żółty
     return [color] * len(row)
 
-# Wyświetlanie sformatowanej tabeli
+# Wyświetlanie tabeli
 st.dataframe(
     df.style.apply(style_rows, axis=1).format({
+        "Cena akcji": "{:.2f}",
         "Wartość w PLN": "{:,.2f}",
-        "Zysk netto (PLN)": "{:,.2f}",
+        "Prowizja (suma)": "{:,.2f}",
+        "Zysk netto": "{:,.2f}",
         "Realna marża": "{:.2f}%"
     }),
-    use_container_width=True
+    use_container_width=True,
+    height=500
 )
